@@ -1,6 +1,6 @@
 const express = require('express');
 const dotenv = require('dotenv');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 dotenv.config();
 const cors = require('cors');
 const app = express();
@@ -8,7 +8,6 @@ const port = process.env.PORT;
 
 app.use(cors());
 app.use(express.json());
-
 
 const uri = process.env.MONGODB_URI;
 
@@ -26,15 +25,34 @@ async function run() {
     const DB = client.db(process.env.DB_NAME);
     const doctorsCollection = DB.collection('doctors');
 
-    // Doctor data post 
+    // Doctor data post
     app.post('/doctors', async (req, res) => {
       const doctorData = req.body;
       doctorData.verificationStatus = 'pending';
       doctorData.createdAt = new Date();
       const result = await doctorsCollection.insertOne(doctorData);
       res.send(result);
+    });
+
+    // Doctor Data get
+    app.get('/doctors/:email', async (req, res) => {
+      const email = req.params.email;
+      const result = await doctorsCollection.findOne({ email: email, });
+      res.send(result);
     })
 
+    // Doctor profile update
+    app.patch('/doctors/:id', async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: updatedData,
+      };
+
+      const result = await doctorsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
 
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
@@ -49,7 +67,6 @@ async function run() {
   }
 }
 run().catch(console.dir);
-
 
 app.get('/', (req, res) => {
   res.send('Hello World!');
