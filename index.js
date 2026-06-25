@@ -24,6 +24,7 @@ async function run() {
   try {
     const DB = client.db(process.env.DB_NAME);
     const doctorsCollection = DB.collection('doctors');
+    const appointmentsCollection = DB.collection('appointments');
 
     // Doctor data post
     app.post('/doctors', async (req, res) => {
@@ -37,9 +38,9 @@ async function run() {
     // Doctor Data get
     app.get('/doctors/:email', async (req, res) => {
       const email = req.params.email;
-      const result = await doctorsCollection.findOne({ email: email, });
+      const result = await doctorsCollection.findOne({ email: email });
       res.send(result);
-    })
+    });
 
     // Doctor profile update
     app.patch('/doctors/:id', async (req, res) => {
@@ -91,6 +92,37 @@ async function run() {
         .toArray();
 
       res.send(doctors);
+    });
+
+    // Book appinment Doctor details
+    app.get('/doctor/:id', async (req, res) => {
+      const id = req.params.id;
+
+      const result = await doctorsCollection.findOne({
+        _id: new ObjectId(id),
+      });
+
+      res.send(result);
+    });
+
+    // Appointments data Post
+    app.post('/appointments', async (req, res) => {
+      try {
+        const appointment = req.body;
+
+        const result = await appointmentsCollection.insertOne({
+          ...appointment,
+          createdAt: new Date(),
+        });
+
+        res.status(201).send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({
+          success: false,
+          message: 'Failed to create appointment',
+        });
+      }
     });
 
     // Connect the client to the server	(optional starting in v4.7)
