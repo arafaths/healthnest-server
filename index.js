@@ -125,6 +125,30 @@ async function run() {
       }
     });
 
+
+    // Patient Dashbord overview
+    app.get('/patient/overview/:email', async (req, res) => {
+      const { email } = req.params;
+
+      const appointments = await appointmentsCollection
+        .find({ patientEmail: email })
+        .toArray();
+
+      const upcomingAppointments = appointments.filter(
+        appointment => appointment.appointmentStatus === 'pending',
+      );
+
+      const totalPayments = appointments
+        .filter(item => item.paymentStatus === 'paid')
+        .reduce((sum, item) => sum + Number(item.fee || 0), 0);
+
+      res.send({
+        upcomingAppointments: upcomingAppointments.length,
+        appointmentHistory: appointments.length,
+        totalPayments,
+      });
+    });
+
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     // Send a ping to confirm a successful connection
