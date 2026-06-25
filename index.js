@@ -149,6 +149,22 @@ async function run() {
       });
     });
 
+    // Upcoming Appointments
+    app.get('/patient/upcoming-appointments/:email', async (req, res) => {
+      const { email } = req.params;
+
+      const appointments = await appointmentsCollection
+        .find({
+          patientEmail: email,
+          appointmentStatus: 'pending',
+        })
+        .sort({ appointmentDate: 1 })
+        .limit(5)
+        .toArray();
+
+      res.send(appointments);
+    });
+
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     // Send a ping to confirm a successful connection
