@@ -54,6 +54,45 @@ async function run() {
       res.send(result);
     });
 
+    // Doctors verified and search get
+    app.get('/doctors', async (req, res) => {
+      const { search = '', specialty = '', sortPrice = '' } = req.query;
+
+      // Search by name + filter by specialty
+      const query = {
+        verificationStatus: 'verified',
+      };
+
+      if (search) {
+        query.doctorName = {
+          $regex: search,
+          $options: 'i',
+        };
+      }
+
+      if (specialty) {
+        query.specialty = specialty;
+      }
+
+      // Sort by price
+      let sortOption = {};
+
+      if (sortPrice === 'lowToHigh') {
+        sortOption = { fee: 1 };
+      }
+
+      if (sortPrice === 'highToLow') {
+        sortOption = { fee: -1 };
+      }
+
+      const doctors = await doctorsCollection
+        .find(query)
+        .sort(sortOption)
+        .toArray();
+
+      res.send(doctors);
+    });
+
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     // Send a ping to confirm a successful connection
