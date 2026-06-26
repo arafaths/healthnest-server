@@ -126,7 +126,6 @@ async function run() {
       }
     });
 
-
     // Patient Dashbord overview
     app.get('/patient/overview/:email', async (req, res) => {
       const { email } = req.params;
@@ -159,7 +158,8 @@ async function run() {
           patientEmail: email,
           appointmentStatus: 'pending',
         })
-        .sort({ appointmentDate: 1 }).toArray();
+        .sort({ appointmentDate: 1 })
+        .toArray();
 
       res.send(appointments);
     });
@@ -219,6 +219,35 @@ async function run() {
       res.send(result);
     });
 
+    // Update user profile
+    app.patch('/users/:email', async (req, res) => {
+      try {
+        const { email } = req.params;
+        const updatedData = req.body;
+
+        const result = await DB.collection('user').updateOne(
+          { email },
+          {
+            $set: {
+              name: updatedData.name,
+              image: updatedData.image,
+              phone: updatedData.phone,
+              gender: updatedData.gender,
+              dob: updatedData.dob,
+              address: updatedData.address,
+            },
+          },
+        );
+
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+        res.status(500).send({
+          success: false,
+          message: 'Failed to update profile',
+        });
+      }
+    });
 
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
