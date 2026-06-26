@@ -25,6 +25,7 @@ async function run() {
     const DB = client.db(process.env.DB_NAME);
     const doctorsCollection = DB.collection('doctors');
     const appointmentsCollection = DB.collection('appointments');
+    const reviewsCollection = DB.collection('reviews');
 
     // Doctor data post
     app.post('/doctors', async (req, res) => {
@@ -158,12 +159,66 @@ async function run() {
           patientEmail: email,
           appointmentStatus: 'pending',
         })
-        .sort({ appointmentDate: 1 })
-        .limit(5)
-        .toArray();
+        .sort({ appointmentDate: 1 }).toArray();
 
       res.send(appointments);
     });
+
+    // Add review api
+    app.post('/reviews', async (req, res) => {
+      const review = req.body;
+
+      review.createdAt = new Date();
+
+      const result = await reviewsCollection.insertOne(review);
+
+      res.send(result);
+    });
+
+    // Patient reviews
+    app.get('/reviews/patient/:email', async (req, res) => {
+      const { email } = req.params;
+
+      const result = await reviewsCollection
+        .find({ patientEmail: email })
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      res.send(result);
+    });
+
+    // Delete review
+    app.delete('/reviews/:id', async (req, res) => {
+      const { id } = req.params;
+
+      const result = await reviewsCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+
+      res.send(result);
+    });
+
+    // update review
+    app.patch('/reviews/:id', async (req, res) => {
+      const { id } = req.params;
+
+      const { rating, comment } = req.body;
+
+      const result = await reviewsCollection.updateOne(
+        {
+          _id: new ObjectId(id),
+        },
+        {
+          $set: {
+            rating,
+            comment,
+          },
+        },
+      );
+
+      res.send(result);
+    });
+
 
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
