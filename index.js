@@ -249,6 +249,130 @@ async function run() {
       }
     });
 
+    // Doctor Dashboard Overview
+    app.get('/doctor/overview/:email', async (req, res) => {
+      const { email } = req.params;
+
+      try {
+        // doctor info
+        const doctor = await doctorsCollection.findOne({ email });
+
+        if (!doctor) {
+          return res.status(404).send({ message: 'Doctor not found' });
+        }
+
+        // doctor appointments
+        const appointments = await appointmentsCollection
+          .find({
+            doctorId: doctor._id.toString(),
+          })
+          .toArray();
+
+        // doctor reviews
+        const reviews = await reviewsCollection
+          .find({
+            doctorId: doctor._id.toString(),
+          })
+          .toArray();
+
+        const totalPatients = new Set(
+          appointments.map(item => item.patientEmail),
+        ).size;
+
+        const today = new Date().toISOString().split('T')[0];
+
+        const todayAppointments = appointments.filter(
+          item => item.appointmentDate === today,
+        ).length;
+
+        const totalPrescriptions = appointments.filter(
+          item => item.prescription,
+        ).length;
+
+        const totalEarnings = appointments
+          .filter(item => item.paymentStatus === 'paid')
+          .reduce((sum, item) => sum + Number(item.fee || 0), 0);
+
+        res.send({
+          totalPatients,
+          todayAppointments,
+          totalReviews: reviews.length,
+          totalPrescriptions,
+          totalEarnings,
+          recentReviews: reviews
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, 5),
+        });
+      } catch (err) {
+        console.log(err);
+        res.status(500).send({
+          message: 'Server Error',
+        });
+      }
+    });
+
+    // Doctor Dashbord appointment get
+    app.get('/doctor/appointments/:email', async (req, res) => {
+      const { email } = req.params;
+
+      const result = await appointmentsCollection
+        .find({
+          doctorEmail: email,
+        })
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      res.send(result);
+    });
+
+    // Doctor Dashbord appointment Accept API
+    app.patch('/appointments/accept/:id', async (req, res) => {
+      const { id } = req.params;
+
+      const result = await appointmentsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            appointmentStatus: 'accepted',
+          },
+        },
+      );
+
+      res.send(result);
+    });
+
+    // Doctor Dashbord appointment Reject API
+    app.patch('/appointments/reject/:id', async (req, res) => {
+      const { id } = req.params;
+
+      const result = await appointmentsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            appointmentStatus: 'rejected',
+          },
+        },
+      );
+
+      res.send(result);
+    });
+
+    // Doctor Dashbord appointment Complet API
+    app.patch('/appointments/complete/:id', async (req, res) => {
+      const { id } = req.params;
+
+      const result = await appointmentsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            appointmentStatus: 'completed',
+          },
+        },
+      );
+
+      res.send(result);
+    });
+
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     // Send a ping to confirm a successful connection
