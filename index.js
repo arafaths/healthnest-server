@@ -26,6 +26,7 @@ async function run() {
     const doctorsCollection = DB.collection('doctors');
     const appointmentsCollection = DB.collection('appointments');
     const reviewsCollection = DB.collection('reviews');
+    const prescriptionsCollection = DB.collection('prescriptions');
 
     // Doctor data post
     app.post('/doctors', async (req, res) => {
@@ -367,6 +368,72 @@ async function run() {
           $set: {
             appointmentStatus: 'completed',
           },
+        },
+      );
+
+      res.send(result);
+    });
+
+    // Doctor Prescription Create API
+    app.post('/prescriptions', async (req, res) => {
+      const data = req.body;
+
+      data.createdAt = new Date();
+
+      const result = await prescriptionsCollection.insertOne(data);
+
+      res.send(result);
+    });
+
+    // Doctor Prescription get
+    app.get('/doctor/prescriptions/:email', async (req, res) => {
+      const { email } = req.params;
+
+      const result = await prescriptionsCollection
+        .find({
+          doctorEmail: email,
+        })
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      res.send(result);
+    });
+
+    // Doctor Appointments completed get
+    app.get('/doctor/patients/:email', async (req, res) => {
+      const { email } = req.params;
+
+      const appointments = await appointmentsCollection
+        .find({
+          doctorEmail: email,
+          appointmentStatus: 'completed',
+        })
+        .toArray();
+
+      const patients = [
+        ...new Map(
+          appointments.map(item => [
+            item.patientEmail,
+            {
+              patientName: item.patientName,
+              patientEmail: item.patientEmail,
+              patientImage: item.patientImage,
+            },
+          ]),
+        ).values(),
+      ];
+
+      res.send(patients);
+    });
+
+    // Doctor Presctiptions Update
+    app.patch('/prescriptions/:id', async (req, res) => {
+      const { id } = req.params;
+
+      const result = await prescriptionsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: req.body,
         },
       );
 
