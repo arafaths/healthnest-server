@@ -440,6 +440,110 @@ async function run() {
       res.send(result);
     });
 
+
+    // Admin Ecosystem Analytics API
+    app.get('/admin/ecosystem-analytics', async (req, res) => {
+      try {
+        const totalDoctors = await doctorsCollection.countDocuments({
+          verificationStatus: 'verified',
+        });
+
+        const totalPatients = await DB.collection('user').countDocuments({
+          role: 'patient',
+        });
+
+        const totalAppointments = await appointmentsCollection.countDocuments();
+
+        const totalRevenue = await appointmentsCollection
+          .find({
+            paymentStatus: 'paid',
+          })
+          .toArray();
+
+        const revenue = totalRevenue.reduce(
+          (sum, item) => sum + Number(item.fee || 0),
+          0,
+        );
+
+        // ---------- Doctor Performance ----------
+        const topDoctors = await reviewsCollection
+          .aggregate([
+            {
+              $group: {
+                _id: '$doctorEmail',
+                rating: { $avg: '$rating' },
+              },
+            },
+            {
+              $sort: { rating: -1 },
+            },
+            {
+              $limit: 5,
+            },
+          ])
+          .toArray();
+
+        const doctorPerformance = [];
+
+        for (const doctor of topDoctors) {
+          const info = await doctorsCollection.findOne({
+            doctorEmail: doctor._id,
+          });
+
+          doctorPerformance.push({
+            name: info?.doctorName || 'Unknown',
+            rating: Number(doctor.rating.toFixed(1)),
+          });
+          console.log(info);
+        }
+
+        // ---------- Monthly Overview ----------
+        const monthly = await appointmentsCollection
+          .aggregate([
+            {
+              $group: {
+                _id: {
+                  $dateToString: {
+                    format: '%Y-%m',
+                    date: '$createdAt',
+                  },
+                },
+                appointments: {
+                  $sum: 1,
+                },
+              },
+            },
+            {
+              $sort: {
+                _id: 1,
+              },
+            },
+          ])
+          .toArray();
+
+        const platformOverview = monthly.map(item => ({
+          month: item._id,
+          appointments: item.appointments,
+        }));
+
+        res.send({
+          stats: {
+            totalDoctors,
+            totalPatients,
+            totalAppointments,
+            totalRevenue: revenue,
+          },
+          doctorPerformance,
+          platformOverview,
+        });
+      } catch (err) {
+        console.log(err);
+
+        res.status(500).send({
+          message: 'Server Error',
+        });
+      }
+    });
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     // Send a ping to confirm a successful connection
