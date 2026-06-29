@@ -651,6 +651,45 @@ async function run() {
         });
       }
     });
+
+    // Admin Verify Doctor Licenses Doctors Get API
+    app.get('/admin/doctor-verification', async (req, res) => {
+      try {
+        const doctors = await doctorsCollection
+          .find()
+          .sort({ createdAt: -1 })
+          .toArray();
+
+        res.send(doctors);
+      } catch (err) {
+        res.status(500).send({ message: 'Server Error' });
+      }
+    });
+
+    // Admin Verify Doctor Licenses Status Update API
+    app.patch('/admin/doctor-verification/:id', async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        const result = await doctorsCollection.updateOne(
+          {
+            _id: new ObjectId(id),
+          },
+          {
+            $set: {
+              verificationStatus: status,
+            },
+          },
+        );
+
+        res.send(result);
+      } catch (err) {
+        res.status(500).send({
+          message: 'Server Error',
+        });
+      }
+    });
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     // Send a ping to confirm a successful connection
