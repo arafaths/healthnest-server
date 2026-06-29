@@ -690,6 +690,23 @@ async function run() {
         });
       }
     });
+
+    // Admin Clinical Appts Registry API
+    app.get('/admin/appointments', async (req, res) => {
+      try {
+        const appointments = await appointmentsCollection
+          .find()
+          .sort({ createdAt: -1 })
+          .toArray();
+
+        res.send(appointments);
+      } catch (err) {
+        console.log(err);
+        res.status(500).send({
+          message: 'Server Error',
+        });
+      }
+    });
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     // Send a ping to confirm a successful connection
