@@ -1,17 +1,15 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [
+  "version": 2,
+  "builds": [
     {
-      "path": "/api/every-minute",
-      "schedule": "* * * * *"
-    },
+      "src": "index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
     {
-      "path": "/api/every-hour",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/every-day",
-      "schedule": "0 0 * * *"
+      "src": "/(.*)",
+      "dest": "index.js"
     }
   ]
 }
