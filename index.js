@@ -707,6 +707,23 @@ async function run() {
         });
       }
     });
+
+    // Admin Stripe Cash Flows API
+    app.get('/admin/payments', async (req, res) => {
+      try {
+        const payments = await appointmentsCollection
+          .find({
+            paymentStatus: { $exists: true },
+          })
+          .sort({ createdAt: -1 })
+          .toArray();
+
+        res.send(payments);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: 'Server Error' });
+      }
+    });
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     // Send a ping to confirm a successful connection
