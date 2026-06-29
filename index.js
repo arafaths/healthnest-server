@@ -27,6 +27,7 @@ async function run() {
     const appointmentsCollection = DB.collection('appointments');
     const reviewsCollection = DB.collection('reviews');
     const prescriptionsCollection = DB.collection('prescriptions');
+    const usersCollection = DB.collection('user');
 
     // Doctor data post
     app.post('/doctors', async (req, res) => {
@@ -440,7 +441,6 @@ async function run() {
       res.send(result);
     });
 
-
     // Admin Ecosystem Analytics API
     app.get('/admin/ecosystem-analytics', async (req, res) => {
       try {
@@ -540,6 +540,113 @@ async function run() {
         console.log(err);
 
         res.status(500).send({
+          message: 'Server Error',
+        });
+      }
+    });
+
+    // Admin Manage User Accounts get API
+    app.get('/admin/users', async (req, res) => {
+      try {
+        const users = await usersCollection
+          .aggregate([
+            {
+              $addFields: {
+                rolePriority: {
+                  $cond: [
+                    { $eq: ['$role', 'admin'] },
+                    0, // Admin first
+                    1, // Doctor + Patient together
+                  ],
+                },
+              },
+            },
+            {
+              $sort: {
+                rolePriority: 1,
+                createdAt: -1,
+              },
+            },
+            {
+              $project: {
+                rolePriority: 0,
+              },
+            },
+          ])
+          .toArray();
+
+        res.send(users);
+      } catch (err) {
+        res.status(500).send({ message: 'Server Error' });
+      }
+    });
+
+    // Admin Manage User Accounts delete API
+    app.delete('/admin/users/:id', async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        const result = await usersCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+
+        if (result.deletedCount === 0) {
+          return res.status(404).send({
+            success: false,
+            message: 'User not found',
+          });
+        }
+
+        res.send({
+          success: true,
+          message: 'User deleted successfully',
+        });
+      } catch (err) {
+        console.log(err);
+
+        res.status(500).send({
+          success: false,
+          message: 'Server Error',
+        });
+      }
+    });
+
+    // Admin Manage User Accounts Suspend\Active API
+    app.patch('/admin/users/:id/suspend', async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        const user = await usersCollection.findOne({
+          _id: new ObjectId(id),
+        });
+
+        if (!user) {
+          return res.status(404).send({
+            success: false,
+            message: 'User not found',
+          });
+        }
+
+        const newStatus = user.status === 'Suspended' ? 'Active' : 'Suspended';
+
+        const result = await usersCollection.updateOne(
+          { _id: new ObjectId(id) },
+          {
+            $set: {
+              status: newStatus,
+            },
+          },
+        );
+
+        res.send({
+          success: true,
+          message: `User ${newStatus.toLowerCase()} successfully`,
+          status: newStatus,
+        });
+      } catch (err) {
+        console.log(err);
+        res.status(500).send({
+          success: false,
           message: 'Server Error',
         });
       }
